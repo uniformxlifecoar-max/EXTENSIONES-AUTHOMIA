@@ -96,12 +96,15 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
       { s: 4, t: 11000 }, // P3: Sales
       { s: 5, t: 14000 }, // P4: Fulfillment
       { s: 6, t: 17000 }, // Core Convergence
-      { s: 7, t: 18500 }, // Brand Reveal
-      { s: 8, t: 24000 }, // Fade Out
+      { s: 7, t: 18500 }, // Brand Reveal (Neon)
+      { s: 8, t: 21000 }, // FLASH (Whiteout)
     ];
 
     const timers = timeline.map(event => setTimeout(() => setStage(event.s), event.t));
-    const finalTimer = setTimeout(onComplete, 26000);
+    
+    // Trigger onComplete when the flash is fully white (stage 8 + transition time)
+    // The component will then exit, fading the white out to reveal the app
+    const finalTimer = setTimeout(onComplete, 22500); 
 
     return () => {
       timers.forEach(clearTimeout);
@@ -123,9 +126,9 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
       case 3: return -1600; // P2 Marketing
       case 4: return -2400; // P3 Sales
       case 5: return -3200; // P4 Fulfillment
-      case 6: return -3400; // Core approach (Optical centering)
-      case 7: return -3400; 
-      case 8: return -3400;
+      case 6: return -3800; // Core approach - Moved deeper for centering
+      case 7: return -3800; // Stay centered
+      case 8: return -3800; // Stay centered during flash
       default: return 0;
     }
   };
@@ -134,19 +137,27 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      exit={{ opacity: 0, transition: { duration: 1.5, ease: "easeOut" } }} // Slow fade out of the white screen
       className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050507] overflow-hidden cursor-none"
     >
       {/* ATMOSPHERE */}
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] pointer-events-none z-50"></div>
       <div className="absolute inset-0 bg-radial-gradient from-transparent via-black/60 to-black/95 z-40 pointer-events-none"></div>
 
+      {/* --- WHITE FLASH OVERLAY (For the transition) --- */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: stage === 8 ? 1 : 0 }}
+        transition={{ duration: 0.8, ease: "circIn" }} // Quick but smooth ramp up to white
+        className="fixed inset-0 z-[200] bg-white pointer-events-none"
+      />
+
       {/* --- VIRTUAL CAMERA RIG --- */}
       <motion.div
         className="relative w-full max-w-4xl h-screen flex justify-center perspective-1000"
         animate={{ 
           y: getCameraY(),
-          scale: stage >= 7 ? 0.9 : 1, 
+          scale: 1, 
         }}
         transition={{ 
           duration: 3,
@@ -187,8 +198,9 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
                    animate={{ opacity: 1 }}
                    exit={{ opacity: 0, scale: 0.9 }}
                    className="absolute top-[40%] bg-black/90 backdrop-blur-xl px-8 py-4 border border-white/10 rounded-full z-10 shadow-2xl"
+                   style={{ transform: 'translateX(-50%)', left: '50%' }}
                  >
-                   <p className="text-sm md:text-lg font-display text-white tracking-[0.2em] uppercase">
+                   <p className="text-sm md:text-lg font-display text-white tracking-[0.2em] uppercase whitespace-nowrap">
                      ...empieza con una decisión.
                    </p>
                  </motion.div>
@@ -204,15 +216,10 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
                   <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
                </filter>
                
-               {/* 
-                 Fulfillment Gradient: 
-                 x1="400" ensures the gradient is applied exactly at the center (where the line is),
-                 solving visibility issues in userSpaceOnUse coordinate system.
-               */}
-               <linearGradient id="fulfillmentGradient" x1="400" y1="2400" x2="400" y2="3000" gradientUnits="userSpaceOnUse">
+               <linearGradient id="fulfillmentGradient" x1="400" y1="2400" x2="400" y2="3800" gradientUnits="userSpaceOnUse">
                  <stop offset="0%" stopColor="#10B981" /> {/* Fulfillment Green */}
-                 <stop offset="60%" stopColor="#10B981" />
-                 <stop offset="90%" stopColor="#FFFFFF" /> {/* White Core Energy */}
+                 <stop offset="40%" stopColor="#10B981" />
+                 <stop offset="70%" stopColor="#FFFFFF" /> {/* White Core Energy */}
                  <stop offset="100%" stopColor="#FFFFFF" /> 
                </linearGradient>
              </defs>
@@ -227,8 +234,9 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
              <FlowLine d="M 250 1600 C 250 2000 400 2000 400 2400" trigger={stage >= 4} color="#EF4444" delay={0.5} />
 
              {/* 4. Fulfillment (Center) -> THE CORE (Down) */}
+             {/* Extended path to reach the new deeper center */}
              <FlowLine 
-                d="M 400 2400 L 400 3000" 
+                d="M 400 2400 L 400 3800" 
                 trigger={stage >= 5} 
                 color="url(#fulfillmentGradient)" 
                 delay={0.2} 
@@ -243,19 +251,23 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
           <Pillar y={3200} active={stage >= 5} title="Fulfillment" subtext="Delivery & Experience" align="center" color="#10B981" />
 
           {/* --- THE BRAND REVEAL --- */}
-          <div className="absolute top-[3800px] w-full flex flex-col items-center justify-center z-20">
+          {/* Centered exactly at 3800px using translateY to adjust for height */}
+          <div 
+            className="absolute h-screen w-full flex flex-col items-center justify-center z-20 pointer-events-none"
+            style={{ top: 3800, transform: 'translateY(-50%)' }}
+          >
              
-             {/* The Energy Core */}
+             {/* The Energy Core - Explodes */}
              <AnimatePresence>
-               {stage >= 6 && (
+               {stage >= 6 && stage < 8 && (
                  <motion.div
                    initial={{ scale: 0, opacity: 0 }}
                    animate={{ 
-                     scale: stage >= 7 ? [1, 15, 0] : 1, // Explode then disappear
+                     scale: stage >= 7 ? [1, 20, 0] : 1, // Explode
                      opacity: stage >= 7 ? [1, 0] : 1
                    }}
-                   transition={{ duration: stage >= 7 ? 0.8 : 1 }}
-                   className="w-4 h-4 bg-white rounded-full shadow-[0_0_50px_white] relative z-10"
+                   transition={{ duration: stage >= 7 ? 0.6 : 1 }}
+                   className="w-4 h-4 bg-white rounded-full shadow-[0_0_50px_white] relative z-10 mb-8"
                  >
                     <div className="absolute inset-0 bg-white rounded-full animate-ping"></div>
                  </motion.div>
@@ -266,16 +278,18 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
              <AnimatePresence>
                {stage >= 7 && (
                  <motion.div
-                   initial={{ opacity: 0, scale: 0.8, filter: "blur(20px)" }}
-                   animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                   initial={{ opacity: 0, scale: 0.95, filter: "blur(15px)" }}
+                   animate={{ 
+                      opacity: 1, 
+                      scale: 1,
+                      filter: "blur(0px)" 
+                   }}
                    transition={{ duration: 1.5, ease: "easeOut" }}
-                   className="text-center relative z-20 mt-[-20px]" // Overlap the explosion
+                   className="text-center relative z-20"
                  >
                    <div className="relative">
-                      {/* Glow behind text */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-authomia-blue via-authomia-blueLight to-authomia-blue blur-3xl opacity-40"></div>
-                      
-                      <h1 className="text-6xl md:text-8xl lg:text-9xl font-display font-bold text-white tracking-[0.15em] leading-none drop-shadow-2xl">
+                      {/* Font size large, white neon effect with multiple shadows for bloom */}
+                      <h1 className="text-6xl md:text-8xl lg:text-[10rem] font-display font-bold text-white tracking-[0.15em] leading-none drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] drop-shadow-[0_0_30px_rgba(255,255,255,0.4)]">
                         AUTHOMIA
                       </h1>
                       
@@ -283,14 +297,14 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
                         initial={{ width: 0 }}
                         animate={{ width: "100%" }}
                         transition={{ delay: 1, duration: 1.5, ease: "easeInOut" }}
-                        className="h-[2px] bg-gradient-to-r from-transparent via-white to-transparent mx-auto mt-6"
+                        className="h-[2px] bg-white shadow-[0_0_15px_white] mx-auto mt-6"
                       />
 
                       <motion.p 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 1.8, duration: 1 }}
-                        className="text-sm md:text-lg text-authomia-subtext font-mono uppercase tracking-[0.5em] mt-6"
+                        transition={{ delay: 1.5, duration: 1 }}
+                        className="text-sm md:text-xl text-white font-mono uppercase tracking-[0.5em] mt-8 drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]"
                       >
                         Agency System
                       </motion.p>
