@@ -48,9 +48,9 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
       case 3: return -1600; // P2 Marketing
       case 4: return -2400; // P3 Ventas
       case 5: return -3200; // P4 Fulfillment
-      case 6: return -3500; // Bajando al núcleo
-      case 7: return -3500; // Mantener posición
-      case 8: return -3500;
+      case 6: return -3400; // Bajando al núcleo - Ajustado para que el logo se vea centrado (menos scroll)
+      case 7: return -3400; 
+      case 8: return -3400;
       default: return 0;
     }
   };
@@ -129,10 +129,10 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
                   <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
                </filter>
                {/* 
-                 CRITICAL FIX: Gradient Units 'userSpaceOnUse' ensures the gradient logic applies 
-                 to the actual coordinates of the line (2400 to 3000), not the bounding box.
+                 FIX: Set x1 and x2 to 400 to align exactly with the line path, 
+                 ensuring the gradient is applied to the correct vertical column in userSpaceOnUse.
                */}
-               <linearGradient id="fulfillmentGradient" x1="0" y1="2400" x2="0" y2="3000" gradientUnits="userSpaceOnUse">
+               <linearGradient id="fulfillmentGradient" x1="400" y1="2400" x2="400" y2="3000" gradientUnits="userSpaceOnUse">
                  <stop offset="0%" stopColor="#10B981" /> {/* Fulfillment Green */}
                  <stop offset="60%" stopColor="#10B981" />
                  <stop offset="90%" stopColor="#FFFFFF" /> {/* White Core Energy */}
