@@ -2,9 +2,84 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
+// --- Interfaces ---
+
 interface IntroOverlayProps {
   onComplete: () => void;
 }
+
+interface FlowLineProps {
+  d: string;
+  trigger: boolean;
+  color: string;
+  delay?: number;
+  strokeWidth?: number;
+}
+
+interface PillarProps {
+  y: number;
+  active: boolean;
+  title: string;
+  subtext: string;
+  align: 'left' | 'center' | 'right';
+  color: string;
+  offsetX?: number;
+}
+
+// --- Sub Components (Defined before usage for strict compliance) ---
+
+const FlowLine: React.FC<FlowLineProps> = ({ d, trigger, color, delay = 0, strokeWidth = 2 }) => (
+  <motion.path
+    d={d}
+    stroke={color}
+    strokeWidth={trigger ? strokeWidth : 0}
+    strokeLinecap="round"
+    fill="none"
+    filter="url(#glowLine)"
+    initial={{ pathLength: 0, opacity: 0 }}
+    animate={{ 
+      pathLength: trigger ? 1 : 0,
+      opacity: trigger ? 0.8 : 0
+    }}
+    transition={{ duration: 2, ease: "easeInOut", delay }}
+  />
+);
+
+const Pillar: React.FC<PillarProps> = ({ y, active, title, subtext, align, color, offsetX = 0 }) => {
+  return (
+    <div 
+      className="absolute flex flex-col items-center justify-center w-64"
+      style={{ top: y, left: `calc(50% + ${offsetX}px - 8rem)` }}
+    >
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: active ? 1 : 0.5 }}
+        transition={{ duration: 0.8, type: "spring" }}
+        className="relative z-10"
+      >
+        <div 
+          className="w-4 h-4 rounded-full bg-[#0B0B0F] border-2 shadow-[0_0_20px_rgba(255,255,255,0.3)] z-20 relative transition-colors duration-500"
+          style={{ borderColor: active ? color : '#333' }}
+        />
+        {active && (
+          <div className="absolute inset-0 w-4 h-4 rounded-full animate-ping opacity-50" style={{ backgroundColor: color }} />
+        )}
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, x: align === 'left' ? -30 : 30 }}
+        animate={{ opacity: active ? 1 : 0, x: active ? 0 : (align === 'left' ? -30 : 30) }}
+        transition={{ delay: 0.3, duration: 0.8 }}
+        className={`absolute ${align === 'left' ? 'right-full mr-8 text-right' : align === 'right' ? 'left-full ml-8 text-left' : 'top-full mt-6 text-center'} w-48`}
+      >
+        <h3 className="text-xl font-display font-bold text-white tracking-widest uppercase drop-shadow-lg">{title}</h3>
+        <p className="text-[10px] font-mono text-gray-400 uppercase tracking-widest mt-1">{subtext}</p>
+      </motion.div>
+    </div>
+  );
+};
+
+// --- Main Component ---
 
 export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
   const [stage, setStage] = useState(0);
@@ -48,7 +123,7 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
       case 3: return -1600; // P2 Marketing
       case 4: return -2400; // P3 Sales
       case 5: return -3200; // P4 Fulfillment
-      case 6: return -3400; // Core approach (Adjusted for optical centering)
+      case 6: return -3400; // Core approach (Optical centering)
       case 7: return -3400; 
       case 8: return -3400;
       default: return 0;
@@ -129,7 +204,11 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
                   <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
                </filter>
                
-               {/* Fulfillment Gradient: Aligned to x=400 to ensure visibility on the vertical path */}
+               {/* 
+                 Fulfillment Gradient: 
+                 x1="400" ensures the gradient is applied exactly at the center (where the line is),
+                 solving visibility issues in userSpaceOnUse coordinate system.
+               */}
                <linearGradient id="fulfillmentGradient" x1="400" y1="2400" x2="400" y2="3000" gradientUnits="userSpaceOnUse">
                  <stop offset="0%" stopColor="#10B981" /> {/* Fulfillment Green */}
                  <stop offset="60%" stopColor="#10B981" />
@@ -242,76 +321,5 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
         />
       </div>
     </motion.div>
-  );
-};
-
-// --- SUB COMPONENTS (Typed) ---
-
-interface FlowLineProps {
-  d: string;
-  trigger: boolean;
-  color: string;
-  delay?: number;
-  strokeWidth?: number;
-}
-
-const FlowLine: React.FC<FlowLineProps> = ({ d, trigger, color, delay = 0, strokeWidth = 2 }) => (
-  <motion.path
-    d={d}
-    stroke={color}
-    strokeWidth={trigger ? strokeWidth : 0}
-    strokeLinecap="round"
-    fill="none"
-    filter="url(#glowLine)"
-    initial={{ pathLength: 0, opacity: 0 }}
-    animate={{ 
-      pathLength: trigger ? 1 : 0,
-      opacity: trigger ? 0.8 : 0
-    }}
-    transition={{ duration: 2, ease: "easeInOut", delay }}
-  />
-);
-
-interface PillarProps {
-  y: number;
-  active: boolean;
-  title: string;
-  subtext: string;
-  align: 'left' | 'center' | 'right';
-  color: string;
-  offsetX?: number;
-}
-
-const Pillar: React.FC<PillarProps> = ({ y, active, title, subtext, align, color, offsetX = 0 }) => {
-  return (
-    <div 
-      className="absolute flex flex-col items-center justify-center w-64"
-      style={{ top: y, left: `calc(50% + ${offsetX}px - 8rem)` }}
-    >
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: active ? 1 : 0.5 }}
-        transition={{ duration: 0.8, type: "spring" }}
-        className="relative z-10"
-      >
-        <div 
-          className="w-4 h-4 rounded-full bg-[#0B0B0F] border-2 shadow-[0_0_20px_rgba(255,255,255,0.3)] z-20 relative transition-colors duration-500"
-          style={{ borderColor: active ? color : '#333' }}
-        />
-        {active && (
-          <div className="absolute inset-0 w-4 h-4 rounded-full animate-ping opacity-50" style={{ backgroundColor: color }} />
-        )}
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, x: align === 'left' ? -30 : 30 }}
-        animate={{ opacity: active ? 1 : 0, x: active ? 0 : (align === 'left' ? -30 : 30) }}
-        transition={{ delay: 0.3, duration: 0.8 }}
-        className={`absolute ${align === 'left' ? 'right-full mr-8 text-right' : align === 'right' ? 'left-full ml-8 text-left' : 'top-full mt-6 text-center'} w-48`}
-      >
-        <h3 className="text-xl font-display font-bold text-white tracking-widest uppercase drop-shadow-lg">{title}</h3>
-        <p className="text-[10px] font-mono text-gray-400 uppercase tracking-widest mt-1">{subtext}</p>
-      </motion.div>
-    </div>
   );
 };
