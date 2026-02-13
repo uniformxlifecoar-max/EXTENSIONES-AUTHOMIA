@@ -19,7 +19,7 @@ export const TextArea: React.FC<TextAreaProps> = ({ label, error, className = ''
           y: isFocused ? -2 : 0 
         }}
         transition={{ duration: 0.3 }}
-        className="text-[11px] font-medium uppercase tracking-[0.15em] flex justify-between transition-colors"
+        className="text-[11px] font-medium uppercase tracking-[0.15em] flex justify-between transition-colors pointer-events-none"
       >
         {label}
       </motion.label>

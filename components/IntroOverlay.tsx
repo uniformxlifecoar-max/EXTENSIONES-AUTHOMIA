@@ -14,13 +14,12 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
   useEffect(() => {
     if (skip) return;
 
-    // TIEMPOS AJUSTADOS PARA LECTURA CÓMODA
     const timeline = [
       { s: 1, t: 2500 },  // Inicia descenso (Decisión)
-      { s: 2, t: 5000 },  // P1: Administración (Lectura)
-      { s: 3, t: 8000 },  // P2: Marketing (Lectura)
-      { s: 4, t: 11000 }, // P3: Ventas (Lectura)
-      { s: 5, t: 14000 }, // P4: Fulfillment (Lectura)
+      { s: 2, t: 5000 },  // P1: Administración
+      { s: 3, t: 8000 },  // P2: Marketing
+      { s: 4, t: 11000 }, // P3: Ventas
+      { s: 5, t: 14000 }, // P4: Fulfillment
       { s: 6, t: 17000 }, // Convergencia al Núcleo
       { s: 7, t: 18500 }, // Explosión / Revelación AUTHOMIA
       { s: 8, t: 24000 }, // Fade Out final
@@ -49,7 +48,7 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
       case 3: return -1600; // P2 Marketing
       case 4: return -2400; // P3 Ventas
       case 5: return -3200; // P4 Fulfillment
-      case 6: return -3500; // Bajando al núcleo - centrado entre P4 y Logo
+      case 6: return -3500; // Bajando al núcleo
       case 7: return -3500; // Mantener posición
       case 8: return -3500;
       default: return 0;
@@ -123,25 +122,21 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
           </div>
 
           {/* --- THE MAIN FLOW SYSTEM (SVG) --- */}
-          {/* 
-             Coordenadas SVG relativas (0 = 800px absolutos)
-             P1: 0, 0 (Center)
-             P2: 550, 800 (Right)
-             P3: 250, 1600 (Left)
-             P4: 400, 2400 (Center) -> Abs 3200
-             Final: 400, 3000 -> Abs 3800
-          */}
           <svg className="absolute top-[800px] w-[800px] h-[4000px] overflow-visible pointer-events-none" style={{ zIndex: 0 }}>
              <defs>
                <filter id="glowLine">
                   <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
                   <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
                </filter>
-               {/* Gradient for the final drop - ensuring high visibility */}
-               <linearGradient id="fulfillmentGradient" x1="0" y1="0" x2="0" y2="1">
+               {/* 
+                 CRITICAL FIX: Gradient Units 'userSpaceOnUse' ensures the gradient logic applies 
+                 to the actual coordinates of the line (2400 to 3000), not the bounding box.
+               */}
+               <linearGradient id="fulfillmentGradient" x1="0" y1="2400" x2="0" y2="3000" gradientUnits="userSpaceOnUse">
                  <stop offset="0%" stopColor="#10B981" /> {/* Fulfillment Green */}
-                 <stop offset="50%" stopColor="#FFFFFF" /> {/* White Core Energy */}
-                 <stop offset="100%" stopColor="#3B82F6" /> {/* Authomia Blue */}
+                 <stop offset="60%" stopColor="#10B981" />
+                 <stop offset="90%" stopColor="#FFFFFF" /> {/* White Core Energy */}
+                 <stop offset="100%" stopColor="#FFFFFF" /> 
                </linearGradient>
              </defs>
 
@@ -155,15 +150,14 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
              <FlowLine d="M 250 1600 C 250 2000 400 2000 400 2400" trigger={stage >= 4} color="#EF4444" delay={0.5} />
 
              {/* 4. Fulfillment (Center) -> THE CORE (Down) */}
-             {/* REIMPLANTACIÓN DE LA LÍNEA FINAL PARA VISIBILIDAD */}
+             {/* Using the fixed gradient definition */}
              <FlowLine 
                 d="M 400 2400 L 400 3000" 
                 trigger={stage >= 5} 
                 color="url(#fulfillmentGradient)" 
                 delay={0.2} 
-                strokeWidth={5} // Thicker for better visibility
+                strokeWidth={5}
              />
-
           </svg>
 
           {/* --- PILLARS --- */}
@@ -173,7 +167,7 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
           <Pillar y={3200} active={stage >= 5} title="Fulfillment" subtext="Delivery & Experience" align="center" color="#10B981" />
 
           {/* --- THE BRAND REVEAL --- */}
-          {/* Posicionado en Abs 3800 (SVG 3000) para dar espacio a la línea vertical */}
+          {/* Posicionado en Abs 3800 (SVG 3000) */}
           <div className="absolute top-[3800px] w-full flex flex-col items-center justify-center z-20">
              
              {/* The Energy Core */}
@@ -255,8 +249,6 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
   );
 };
 
-// --- SUB COMPONENTS ---
-
 const FlowLine = ({ d, trigger, color, delay = 0, strokeWidth = 2 }: any) => (
   <motion.path
     d={d}
@@ -280,7 +272,6 @@ const Pillar = ({ y, active, title, subtext, align, color, offsetX = 0 }: any) =
       className="absolute flex flex-col items-center justify-center w-64"
       style={{ top: y, left: `calc(50% + ${offsetX}px - 8rem)` }}
     >
-      {/* Node */}
       <motion.div
         initial={{ scale: 0 }}
         animate={{ scale: active ? 1 : 0.5 }}
@@ -296,7 +287,6 @@ const Pillar = ({ y, active, title, subtext, align, color, offsetX = 0 }: any) =
         )}
       </motion.div>
 
-      {/* Label */}
       <motion.div
         initial={{ opacity: 0, x: align === 'left' ? -30 : 30 }}
         animate={{ opacity: active ? 1 : 0, x: active ? 0 : (align === 'left' ? -30 : 30) }}
