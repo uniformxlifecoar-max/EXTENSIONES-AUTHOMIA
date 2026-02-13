@@ -4,7 +4,7 @@ import {
   ArrowRight, ArrowLeft, CheckCircle2, Loader2, 
   Building2, User, Sparkles, Search, ChevronDown, Check,
   Plus, X, Globe, Instagram, Linkedin, Facebook, Youtube, Twitter, Link as LinkIcon,
-  MessageCircle, Twitch, Mic, ShoppingBag
+  MessageCircle, Twitch, Mic
 } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 import { FormData, FormErrors, INDUSTRIES, SERVICES_LIST, BUDGET_RANGES } from '../types';
