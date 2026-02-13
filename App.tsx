@@ -17,18 +17,20 @@ const App: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="logo-shine cursor-pointer"
+            className="cursor-pointer"
           >
-             <img 
-               src="https://r2.fivemanage.com/pub/1y99u9a40590.png" 
-               alt="AUTHOMIA" 
-               className="h-10 md:h-14 w-auto object-contain brightness-200 drop-shadow-lg"
-               onError={(e) => {
-                 e.currentTarget.style.display = 'none';
-                 e.currentTarget.nextElementSibling?.classList.remove('hidden');
-               }}
-             />
-             <span className="hidden text-2xl font-display font-bold tracking-[0.2em] text-white">AUTHOMIA</span>
+             <div className="logo-shine px-4 py-2 rounded-lg">
+               <img 
+                 src="https://r2.fivemanage.com/pub/1y99u9a40590.png" 
+                 alt="AUTHOMIA" 
+                 className="h-10 md:h-14 w-auto object-contain brightness-200 drop-shadow-lg relative z-10"
+                 onError={(e) => {
+                   e.currentTarget.style.display = 'none';
+                   e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                 }}
+               />
+               <span className="hidden text-2xl font-display font-bold tracking-[0.2em] text-white">AUTHOMIA</span>
+             </div>
           </motion.div>
 
           {/* Status Indicator */}

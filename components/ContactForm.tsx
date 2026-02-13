@@ -2,13 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowRight, ArrowLeft, CheckCircle2, Loader2, 
-  Building2, User, Sparkles, Search, ChevronDown, Check
+  Building2, User, Sparkles, Search, ChevronDown, Check,
+  Plus, X, Globe, Instagram, Linkedin, Facebook, Youtube, Twitter, Link as LinkIcon,
+  MessageCircle, Twitch, Mic, ShoppingBag
 } from 'lucide-react';
 import emailjs from '@emailjs/browser';
-import { FormData, FormErrors, INDUSTRIES, SERVICE_OPTIONS, BUDGET_RANGES } from '../types';
+import { FormData, FormErrors, INDUSTRIES, SERVICES_LIST, BUDGET_RANGES } from '../types';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { TextArea } from './ui/TextArea';
+import { IntroOverlay } from './IntroOverlay';
 
 // --- Constants ---
 const COUNTRIES = [
@@ -49,6 +52,7 @@ const INITIAL_DATA: FormData = {
   clientType: null, businessName: '', industry: '',
   requestedService: '', budgetRange: '',
   message: '', consent: false,
+  socialLinks: [''],
 };
 
 // --- Animations ---
@@ -68,19 +72,115 @@ const fadeVariants = {
   }
 };
 
+// --- Helper Functions ---
+
+const getPlatformName = (url: string) => {
+  const lower = url.toLowerCase();
+  if (lower.includes('instagram')) return 'Instagram';
+  if (lower.includes('facebook') || lower.includes('messenger')) return 'Facebook';
+  if (lower.includes('linkedin')) return 'LinkedIn';
+  if (lower.includes('youtube')) return 'YouTube';
+  if (lower.includes('twitter') || lower.includes('x.com')) return 'X (Twitter)';
+  if (lower.includes('tiktok') || lower.includes('douyin')) return 'TikTok';
+  if (lower.includes('whatsapp')) return 'WhatsApp';
+  if (lower.includes('telegram')) return 'Telegram';
+  if (lower.includes('wechat')) return 'WeChat';
+  if (lower.includes('pinterest')) return 'Pinterest';
+  if (lower.includes('snapchat')) return 'Snapchat';
+  if (lower.includes('reddit')) return 'Reddit';
+  if (lower.includes('discord')) return 'Discord';
+  if (lower.includes('twitch')) return 'Twitch';
+  if (lower.includes('spotify')) return 'Spotify';
+  return 'Sitio Web / Otro';
+};
+
+const formatSocialLinksForEmail = (links: string[]) => {
+  const validLinks = links.filter(link => link.trim() !== '');
+  if (validLinks.length === 0) return "No se proporcionaron enlaces de redes sociales.";
+
+  return validLinks.map(link => {
+    const platform = getPlatformName(link);
+    return `• ${platform}: ${link}`;
+  }).join('\n');
+};
+
+// --- Internal Components ---
+
+/* [REDES_SOCIALES] START */
+// Encapsulated Social Media Logic
+const SocialInputRow: React.FC<{ 
+  value: string; 
+  onChange: (val: string) => void; 
+  onRemove: () => void;
+  showRemove: boolean; 
+}> = ({ value, onChange, onRemove, showRemove }) => {
+  
+  const getIcon = (url: string) => {
+    const lower = url.toLowerCase();
+    // Major Platforms
+    if (lower.includes('instagram')) return <Instagram size={16} className="text-[#E1306C]" />;
+    if (lower.includes('linkedin')) return <Linkedin size={16} className="text-[#0077B5]" />;
+    if (lower.includes('facebook') || lower.includes('messenger')) return <Facebook size={16} className="text-[#1877F2]" />;
+    if (lower.includes('youtube')) return <Youtube size={16} className="text-[#FF0000]" />;
+    if (lower.includes('twitter') || lower.includes('x.com')) return <Twitter size={16} className="text-white" />;
+    if (lower.includes('tiktok') || lower.includes('douyin')) return <span className="text-white font-bold text-xs">TK</span>;
+    if (lower.includes('whatsapp')) return <MessageCircle size={16} className="text-[#25D366]" />;
+    if (lower.includes('telegram')) return <MessageCircle size={16} className="text-[#0088cc]" />;
+    if (lower.includes('twitch')) return <Twitch size={16} className="text-[#9146FF]" />;
+    if (lower.includes('discord')) return <MessageCircle size={16} className="text-[#5865F2]" />;
+    if (lower.includes('spotify')) return <Mic size={16} className="text-[#1DB954]" />;
+    if (lower.includes('pinterest')) return <span className="text-[#BD081C] font-bold text-xs">P</span>;
+    if (lower.includes('reddit')) return <span className="text-[#FF4500] font-bold text-xs">R</span>;
+    if (lower.includes('wechat')) return <MessageCircle size={16} className="text-[#7BB32E]" />;
+    
+    return <Globe size={16} className="text-authomia-subtext" />;
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative flex items-center gap-2 group"
+    >
+      <div className="relative flex-1">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none transition-all duration-300">
+          {value ? getIcon(value) : <LinkIcon size={16} className="text-gray-600" />}
+        </div>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="https://..."
+          className="w-full bg-[#0F1115] border border-authomia-border rounded-lg pl-10 pr-4 py-3 text-sm text-white placeholder-gray-700 focus:outline-none focus:border-authomia-blueLight focus:bg-[#131b26] transition-all"
+        />
+      </div>
+      {showRemove && (
+        <button 
+          onClick={onRemove}
+          className="p-3 rounded-lg border border-authomia-border bg-[#0F1115] text-gray-500 hover:text-red-400 hover:border-red-900 transition-colors"
+        >
+          <X size={16} />
+        </button>
+      )}
+    </motion.div>
+  );
+};
+/* [REDES_SOCIALES] END */
+
+
 export const ContactForm: React.FC = () => {
-  const [step, setStep] = useState(0); // 0: Intro, 1: ID, 2: Type, 3: Details, 4: Budget/Msg, 5: Success
+  const [step, setStep] = useState(0); 
   const [data, setData] = useState<FormData>(INITIAL_DATA);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [showIntro, setShowIntro] = useState(false); // Controls the overlay
+
   // Country Selector State
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]); // Default to Peru
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
   const [isCountryOpen, setIsCountryOpen] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const countryDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close country dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target as Node)) {
@@ -91,17 +191,33 @@ export const ContactForm: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Filter countries
   const filteredCountries = COUNTRIES.filter(c => 
     c.name.toLowerCase().includes(countrySearch.toLowerCase()) || 
     c.code.includes(countrySearch)
   );
 
-  // --- Helpers ---
+  // --- Logic ---
   const updateData = (field: keyof FormData, value: any) => {
     setData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
   };
+
+  /* [REDES_SOCIALES] START Logic */
+  const handleSocialChange = (index: number, val: string) => {
+    const newLinks = [...data.socialLinks];
+    newLinks[index] = val;
+    updateData('socialLinks', newLinks);
+  };
+
+  const addSocialLink = () => {
+    updateData('socialLinks', [...data.socialLinks, '']);
+  };
+
+  const removeSocialLink = (index: number) => {
+    const newLinks = data.socialLinks.filter((_, i) => i !== index);
+    updateData('socialLinks', newLinks);
+  };
+  /* [REDES_SOCIALES] END Logic */
 
   const validateStep = (currentStep: number): boolean => {
     const newErrors: FormErrors = {};
@@ -117,12 +233,21 @@ export const ContactForm: React.FC = () => {
     else if (currentStep === 2) { // Type
       if (!data.clientType) newErrors.clientType = "Debes seleccionar una opción";
     }
-    else if (currentStep === 3) { // Logic based details
+    else if (currentStep === 3) { // Services
       if (data.clientType === 'active') {
         if (!data.businessName?.trim()) newErrors.businessName = "Nombre de empresa requerido";
         if (!data.industry) newErrors.industry = "Industria requerida";
       }
-      if (!data.requestedService) newErrors.requestedService = "Selecciona un servicio de interés";
+      if (!data.requestedService) newErrors.requestedService = "Selecciona un servicio";
+      
+      // Mandatory social for Custom Automation
+      if (data.requestedService === 'Custom Automation Solution') {
+        const hasValidLink = data.socialLinks.some(link => link.trim().length > 5);
+        if (!hasValidLink) {
+          isValid = false;
+          alert("Para soluciones a medida, requerimos conocer tu sitio web o redes actuales.");
+        }
+      }
     }
     else if (currentStep === 4) { // Final
       if (!data.budgetRange) { newErrors.budgetRange = "Selecciona un rango"; isValid = false; }
@@ -135,20 +260,30 @@ export const ContactForm: React.FC = () => {
 
   const nextStep = () => {
     if (validateStep(step)) {
-      setStep(prev => prev + 1);
+      // Trigger Intro Overlay when moving to Step 3 (Services)
+      if (step === 2) {
+        setShowIntro(true);
+      } else {
+        setStep(prev => prev + 1);
+      }
     }
   };
 
-  const prevStep = () => {
-    setStep(prev => prev - 1);
+  const handleIntroComplete = () => {
+    setShowIntro(false);
+    setStep(3); // Move to services after intro
   };
+
+  const prevStep = () => setStep(prev => prev - 1);
 
   const handleSubmit = async () => {
     if (!validateStep(step)) return;
 
     setIsSubmitting(true);
     
-    // Construct params for EmailJS template
+    // Format social links for the Email Template
+    const socialNetworksString = formatSocialLinksForEmail(data.socialLinks);
+
     const templateParams = {
       fullName: data.fullName,
       email: data.email,
@@ -157,18 +292,15 @@ export const ContactForm: React.FC = () => {
       businessName: data.clientType === 'active' ? data.businessName : 'N/A',
       industry: data.clientType === 'active' ? data.industry : 'N/A',
       requestedService: data.requestedService,
+      // Synced with the user's EmailJS Template variable name: {{socialNetworks}}
+      socialNetworks: socialNetworksString,
       budgetRange: data.budgetRange,
       message: data.message || 'Sin mensaje adicional',
       time: new Date().toLocaleString()
     };
 
     try {
-      await emailjs.send(
-        'service_7ieot2b',
-        'template_1g2lhne',
-        templateParams,
-        'UdYJxT79gfFalNHtU'
-      );
+      await emailjs.send('service_7ieot2b', 'template_1g2lhne', templateParams, 'UdYJxT79gfFalNHtU');
       setStep(5);
     } catch (e) {
       console.error(e);
@@ -188,7 +320,6 @@ export const ContactForm: React.FC = () => {
          transition={{ duration: 0.8 }}
          className="w-full flex justify-center mb-4"
        >
-         {/* Decorative Badge */}
          <div className="px-4 py-1.5 rounded-full border border-authomia-blueLight/30 bg-authomia-blue/20 backdrop-blur-md">
            <span className="text-[10px] uppercase tracking-[0.3em] text-authomia-text font-medium">Protocolo de Inicio</span>
          </div>
@@ -234,7 +365,7 @@ export const ContactForm: React.FC = () => {
         <Input label="Nombre Completo" value={data.fullName} onChange={e => updateData('fullName', e.target.value)} error={errors.fullName} autoFocus />
         <Input label="Correo Electrónico" type="email" value={data.email} onChange={e => updateData('email', e.target.value)} error={errors.email} />
         
-        {/* Custom Phone Input with Country Selector */}
+        {/* Phone Input */}
         <motion.div 
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
@@ -246,7 +377,6 @@ export const ContactForm: React.FC = () => {
           </label>
           
           <div className="flex gap-2">
-            {/* Country Dropdown Trigger */}
             <div className="relative" ref={countryDropdownRef}>
               <button
                 type="button"
@@ -264,7 +394,6 @@ export const ContactForm: React.FC = () => {
                 <ChevronDown size={14} className={`text-gray-500 transition-transform duration-300 ${isCountryOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Dropdown Content */}
               <AnimatePresence>
                 {isCountryOpen && (
                   <motion.div
@@ -274,7 +403,6 @@ export const ContactForm: React.FC = () => {
                     transition={{ duration: 0.2 }}
                     className="absolute top-full left-0 mt-2 w-[300px] max-h-[300px] bg-[#0F1115] border border-authomia-border rounded-xl shadow-2xl overflow-hidden flex flex-col z-[100]"
                   >
-                    {/* Search Bar */}
                     <div className="p-3 border-b border-authomia-border sticky top-0 bg-[#0F1115] z-10">
                       <div className="relative">
                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -288,8 +416,6 @@ export const ContactForm: React.FC = () => {
                         />
                       </div>
                     </div>
-
-                    {/* List */}
                     <div className="overflow-y-auto custom-scrollbar flex-1 p-1">
                       {filteredCountries.length > 0 ? (
                         filteredCountries.map((country) => (
@@ -326,13 +452,10 @@ export const ContactForm: React.FC = () => {
                 )}
               </AnimatePresence>
             </div>
-
-            {/* Phone Number Input */}
             <input
               type="tel"
               value={data.phone}
               onChange={(e) => {
-                // Only allow numbers and basic symbols
                 const val = e.target.value.replace(/[^0-9\s-]/g, '');
                 updateData('phone', val);
               }}
@@ -380,7 +503,6 @@ export const ContactForm: React.FC = () => {
             <span className="text-lg font-display font-bold text-white block group-hover:text-authomia-redLight transition-colors">Empresa Activa</span>
             <p className="text-xs text-gray-400 leading-relaxed group-hover:text-gray-300">Ya operamos y buscamos optimizar procesos o escalar.</p>
           </div>
-          {/* Subtle sheen */}
           <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
         </motion.button>
         
@@ -403,7 +525,6 @@ export const ContactForm: React.FC = () => {
              <span className="text-lg font-display font-bold text-white block group-hover:text-authomia-blueLight transition-colors">Nuevo Proyecto</span>
              <p className="text-xs text-gray-400 leading-relaxed group-hover:text-gray-300">Tengo una idea o estoy comenzando desde cero.</p>
           </div>
-          {/* Subtle sheen */}
           <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
         </motion.button>
       </div>
@@ -411,35 +532,122 @@ export const ContactForm: React.FC = () => {
     </div>
   );
 
-  const renderDetails = () => (
+  const renderServices = () => (
     <div className="space-y-8">
-      <div className="mb-8">
-        <h3 className="text-3xl font-display font-bold text-white tracking-wide">Detalles</h3>
-        <p className="text-sm text-authomia-subtext mt-2">Paso 03 — Profundicemos en tus necesidades.</p>
+      <div className="mb-4">
+        <h3 className="text-3xl font-display font-bold text-white tracking-wide">Sistema</h3>
+        <p className="text-sm text-authomia-subtext mt-2">Paso 03 — Diseñemos tu infraestructura digital.</p>
       </div>
 
-      <AnimatePresence mode="wait">
-        {data.clientType === 'active' ? (
+      {/* Intro Message */}
+      <div className="p-4 rounded-lg bg-authomia-blue/5 border border-white/5 mb-6">
+        <p className="text-xs text-center text-gray-300 italic">
+          "Todas nuestras soluciones son diseñadas a medida, integrando procesos administrativos, marketing, ventas y operación."
+        </p>
+      </div>
+
+      {/* Business Details (If Active) */}
+      <AnimatePresence>
+        {data.clientType === 'active' && (
           <motion.div 
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 overflow-hidden"
           >
             <Input label="Nombre de la Empresa" value={data.businessName} onChange={e => updateData('businessName', e.target.value)} error={errors.businessName} />
             <Select label="Industria / Sector" options={INDUSTRIES} value={data.industry} onChange={e => updateData('industry', e.target.value)} error={errors.industry} />
-            <Select label="Servicio de Interés" options={SERVICE_OPTIONS} value={data.requestedService} onChange={e => updateData('requestedService', e.target.value)} error={errors.requestedService} />
-          </motion.div>
-        ) : (
-           <motion.div 
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
-            <div className="p-4 bg-authomia-blue/10 border border-authomia-blueLight/30 rounded-lg mb-4">
-              <p className="text-sm text-gray-300 italic">"Todo gran proyecto comienza con una visión clara."</p>
-            </div>
-            <Select label="¿Qué deseas implementar?" options={SERVICE_OPTIONS} value={data.requestedService} onChange={e => updateData('requestedService', e.target.value)} error={errors.requestedService} />
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Services Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {SERVICES_LIST.map((service, index) => {
+          const isSelected = data.requestedService === service.title;
+          return (
+            <motion.button
+              key={service.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              onClick={() => updateData('requestedService', service.title)}
+              whileHover={{ scale: 1.01 }}
+              className={`
+                relative p-5 border rounded-lg text-left transition-all duration-300 group overflow-hidden flex flex-col gap-1
+                ${isSelected 
+                  ? 'bg-gradient-to-br from-authomia-blue/40 to-authomia-red/20 border-authomia-red/50 shadow-[0_0_20px_rgba(122,15,26,0.2)]' 
+                  : 'bg-[#0F1115]/50 border-white/5 hover:bg-[#0F1115] hover:border-authomia-blueLight/30'}
+              `}
+            >
+              <h4 className={`text-sm font-bold font-display tracking-wide ${isSelected ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>
+                {service.title}
+              </h4>
+              <p className="text-[10px] uppercase tracking-[0.1em] text-authomia-subtext">
+                {service.desc}
+              </p>
+              {isSelected && <div className="absolute right-0 top-0 p-2"><div className="w-1.5 h-1.5 rounded-full bg-authomia-red shadow-[0_0_8px_#D50000]"></div></div>}
+            </motion.button>
+          )
+        })}
+      </div>
+      {errors.requestedService && <p className="text-red-500 text-xs font-medium">{errors.requestedService}</p>}
+
+      {/* Conditional: Not Sure Message */}
+      <AnimatePresence>
+        {data.requestedService === "I'm Not Sure Yet" && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-4 p-4 rounded-lg bg-authomia-blue/10 border-l-2 border-authomia-blueLight"
+          >
+            <p className="text-xs text-gray-300 italic font-light tracking-wide">
+              "{data.clientType === 'active' 
+                ? 'Las ideas claras y las decisiones contundentes son las que hacen que el cambio se sienta en tu negocio.' 
+                : 'Las ideas claras y las decisiones firmes son las que hacen que el cambio se sienta en tu proyecto.'}"
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* [REDES_SOCIALES] START Component */}
+      <AnimatePresence>
+        {data.requestedService && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pt-8 border-t border-white/5 mt-8 space-y-4"
+          >
+            <div className="flex justify-between items-end">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-white">Huella Digital</h4>
+                <p className="text-[10px] text-authomia-subtext mt-1">Sitio web o redes sociales {data.requestedService === 'Custom Automation Solution' && <span className="text-authomia-red">*Requerido</span>}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {data.socialLinks.map((link, idx) => (
+                <SocialInputRow 
+                  key={idx}
+                  value={link}
+                  onChange={(val) => handleSocialChange(idx, val)}
+                  onRemove={() => removeSocialLink(idx)}
+                  showRemove={data.socialLinks.length > 1}
+                />
+              ))}
+              
+              <button
+                type="button"
+                onClick={addSocialLink}
+                className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-authomia-blueLight hover:text-white transition-colors"
+              >
+                <Plus size={12} /> Agregar otra red
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* [REDES_SOCIALES] END Component */}
     </div>
   );
 
@@ -542,90 +750,101 @@ export const ContactForm: React.FC = () => {
   // --- Main Layout ---
 
   return (
-    <div className="w-full max-w-2xl mx-auto min-h-[600px] flex flex-col justify-center relative px-6 md:px-0">
-      
-      {/* Progress Dots */}
-      {step > 0 && step < 5 && (
-        <div className="absolute top-0 left-0 right-0 flex justify-center gap-2 mb-8">
-          {[1, 2, 3, 4].map((i) => (
-             <motion.div 
-                key={i}
-                initial={false}
-                animate={{ 
-                  backgroundColor: step >= i ? '#7A0F1A' : '#1F2937',
-                  scale: step === i ? 1.5 : 1,
-                  boxShadow: step === i ? "0 0 10px rgba(122, 15, 26, 0.8)" : "none"
-                }}
-                className="w-2 h-2 rounded-full transition-all duration-500"
-             />
-          ))}
+    <>
+      <AnimatePresence>
+        {showIntro && <IntroOverlay onComplete={handleIntroComplete} />}
+      </AnimatePresence>
+
+      <div className="w-full max-w-2xl mx-auto min-h-[600px] flex flex-col justify-center relative px-6 md:px-0">
+        
+        {/* Progress Dots */}
+        {step > 0 && step < 5 && !showIntro && (
+          <div className="absolute top-0 left-0 right-0 flex justify-center gap-2 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+               <motion.div 
+                  key={i}
+                  initial={false}
+                  animate={{ 
+                    backgroundColor: step >= i ? '#7A0F1A' : '#1F2937',
+                    scale: step === i ? 1.5 : 1,
+                    boxShadow: step === i ? "0 0 10px rgba(122, 15, 26, 0.8)" : "none"
+                  }}
+                  className="w-2 h-2 rounded-full transition-all duration-500"
+               />
+            ))}
+          </div>
+        )}
+
+        <div className="relative pt-10">
+          <div className="backdrop-blur-3xl bg-[#0B0B0F]/80 border border-white/5 rounded-2xl p-6 md:p-10 shadow-2xl relative overflow-hidden">
+            {/* Subtle Shine on Card */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+            
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                variants={fadeVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="w-full relative z-10"
+              >
+                {step === 0 && renderIntro()}
+                {step === 1 && renderIdentity()}
+                {step === 2 && renderClientType()}
+                {step === 3 && renderServices()}
+                {step === 4 && renderFinal()}
+                {step === 5 && renderSuccess()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
-      )}
 
-      <div className="relative pt-10">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            variants={fadeVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="w-full"
+        {/* Navigation */}
+        {step > 0 && step < 5 && !showIntro && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex justify-between items-center mt-8 px-4"
           >
-            {step === 0 && renderIntro()}
-            {step === 1 && renderIdentity()}
-            {step === 2 && renderClientType()}
-            {step === 3 && renderDetails()}
-            {step === 4 && renderFinal()}
-            {step === 5 && renderSuccess()}
+            <motion.button
+              whileHover={{ x: -3, color: "#fff" }}
+              onClick={prevStep}
+              className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors px-4 py-2 uppercase text-[10px] tracking-[0.2em] font-medium"
+            >
+              <ArrowLeft size={14} />
+              <span>Atrás</span>
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.05, boxShadow: "0 0 25px rgba(122, 15, 26, 0.5)" }}
+              whileTap={{ scale: 0.98 }}
+              onClick={step === 4 ? handleSubmit : nextStep}
+              disabled={isSubmitting}
+              className={`
+                flex items-center gap-3 px-8 py-4 rounded-lg font-bold text-xs tracking-[0.2em] uppercase transition-all duration-300 relative overflow-hidden group
+                ${isSubmitting 
+                  ? 'bg-gray-800 text-gray-500 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-authomia-blue to-authomia-red text-white shadow-lg border border-transparent hover:border-authomia-redLight/50'}
+              `}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin" size={16} />
+                  <span>Enviando...</span>
+                </>
+              ) : (
+                <>
+                  <span className="relative z-10">{step === 4 ? "Enviar Solicitud" : "Continuar"}</span>
+                  {step !== 4 && <ArrowRight size={14} className="relative z-10 group-hover:translate-x-1 transition-transform" />}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out z-0"></div>
+                </>
+              )}
+            </motion.button>
           </motion.div>
-        </AnimatePresence>
+        )}
       </div>
-
-      {/* Navigation */}
-      {step > 0 && step < 5 && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="flex justify-between items-center mt-12 pt-8 border-t border-authomia-border"
-        >
-          <motion.button
-            whileHover={{ x: -3, color: "#fff" }}
-            onClick={prevStep}
-            className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors px-4 py-2 uppercase text-[10px] tracking-[0.2em] font-medium"
-          >
-            <ArrowLeft size={14} />
-            <span>Atrás</span>
-          </motion.button>
-          
-          <motion.button
-            whileHover={{ scale: 1.05, boxShadow: "0 0 25px rgba(122, 15, 26, 0.5)" }}
-            whileTap={{ scale: 0.98 }}
-            onClick={step === 4 ? handleSubmit : nextStep}
-            disabled={isSubmitting}
-            className={`
-              flex items-center gap-3 px-8 py-4 rounded-lg font-bold text-xs tracking-[0.2em] uppercase transition-all duration-300 relative overflow-hidden group
-              ${isSubmitting 
-                ? 'bg-gray-800 text-gray-500 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-authomia-blue to-authomia-red text-white shadow-lg border border-transparent hover:border-authomia-redLight/50'}
-            `}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="animate-spin" size={16} />
-                <span>Enviando...</span>
-              </>
-            ) : (
-              <>
-                <span className="relative z-10">{step === 4 ? "Enviar Solicitud" : "Continuar"}</span>
-                {step !== 4 && <ArrowRight size={14} className="relative z-10 group-hover:translate-x-1 transition-transform" />}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out z-0"></div>
-              </>
-            )}
-          </motion.button>
-        </motion.div>
-      )}
-    </div>
+    </>
   );
 };
