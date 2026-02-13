@@ -15,14 +15,14 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
     if (skip) return;
 
     const timeline = [
-      { s: 1, t: 2500 },  // Inicia descenso (Decisión)
-      { s: 2, t: 5000 },  // P1: Administración
+      { s: 1, t: 2500 },  // Descent Start
+      { s: 2, t: 5000 },  // P1: Admin
       { s: 3, t: 8000 },  // P2: Marketing
-      { s: 4, t: 11000 }, // P3: Ventas
+      { s: 4, t: 11000 }, // P3: Sales
       { s: 5, t: 14000 }, // P4: Fulfillment
-      { s: 6, t: 17000 }, // Convergencia al Núcleo
-      { s: 7, t: 18500 }, // Explosión / Revelación AUTHOMIA
-      { s: 8, t: 24000 }, // Fade Out final
+      { s: 6, t: 17000 }, // Core Convergence
+      { s: 7, t: 18500 }, // Brand Reveal
+      { s: 8, t: 24000 }, // Fade Out
     ];
 
     const timers = timeline.map(event => setTimeout(() => setStage(event.s), event.t));
@@ -46,9 +46,9 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
       case 1: return -200;
       case 2: return -800;  // P1 Admin
       case 3: return -1600; // P2 Marketing
-      case 4: return -2400; // P3 Ventas
+      case 4: return -2400; // P3 Sales
       case 5: return -3200; // P4 Fulfillment
-      case 6: return -3400; // Bajando al núcleo - Ajustado para que el logo se vea centrado (menos scroll)
+      case 6: return -3400; // Core approach (Adjusted for optical centering)
       case 7: return -3400; 
       case 8: return -3400;
       default: return 0;
@@ -74,7 +74,7 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
           scale: stage >= 7 ? 0.9 : 1, 
         }}
         transition={{ 
-          duration: 3, // Movimiento más suave y lento
+          duration: 3,
           ease: [0.25, 0.1, 0.25, 1], // Cinematic Bezier
         }}
       >
@@ -128,10 +128,8 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
                   <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
                   <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
                </filter>
-               {/* 
-                 FIX: Set x1 and x2 to 400 to align exactly with the line path, 
-                 ensuring the gradient is applied to the correct vertical column in userSpaceOnUse.
-               */}
+               
+               {/* Fulfillment Gradient: Aligned to x=400 to ensure visibility on the vertical path */}
                <linearGradient id="fulfillmentGradient" x1="400" y1="2400" x2="400" y2="3000" gradientUnits="userSpaceOnUse">
                  <stop offset="0%" stopColor="#10B981" /> {/* Fulfillment Green */}
                  <stop offset="60%" stopColor="#10B981" />
@@ -150,7 +148,6 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
              <FlowLine d="M 250 1600 C 250 2000 400 2000 400 2400" trigger={stage >= 4} color="#EF4444" delay={0.5} />
 
              {/* 4. Fulfillment (Center) -> THE CORE (Down) */}
-             {/* Using the fixed gradient definition */}
              <FlowLine 
                 d="M 400 2400 L 400 3000" 
                 trigger={stage >= 5} 
@@ -167,7 +164,6 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
           <Pillar y={3200} active={stage >= 5} title="Fulfillment" subtext="Delivery & Experience" align="center" color="#10B981" />
 
           {/* --- THE BRAND REVEAL --- */}
-          {/* Posicionado en Abs 3800 (SVG 3000) */}
           <div className="absolute top-[3800px] w-full flex flex-col items-center justify-center z-20">
              
              {/* The Energy Core */}
@@ -249,7 +245,17 @@ export const IntroOverlay: React.FC<IntroOverlayProps> = ({ onComplete }) => {
   );
 };
 
-const FlowLine = ({ d, trigger, color, delay = 0, strokeWidth = 2 }: any) => (
+// --- SUB COMPONENTS (Typed) ---
+
+interface FlowLineProps {
+  d: string;
+  trigger: boolean;
+  color: string;
+  delay?: number;
+  strokeWidth?: number;
+}
+
+const FlowLine: React.FC<FlowLineProps> = ({ d, trigger, color, delay = 0, strokeWidth = 2 }) => (
   <motion.path
     d={d}
     stroke={color}
@@ -266,7 +272,17 @@ const FlowLine = ({ d, trigger, color, delay = 0, strokeWidth = 2 }: any) => (
   />
 );
 
-const Pillar = ({ y, active, title, subtext, align, color, offsetX = 0 }: any) => {
+interface PillarProps {
+  y: number;
+  active: boolean;
+  title: string;
+  subtext: string;
+  align: 'left' | 'center' | 'right';
+  color: string;
+  offsetX?: number;
+}
+
+const Pillar: React.FC<PillarProps> = ({ y, active, title, subtext, align, color, offsetX = 0 }) => {
   return (
     <div 
       className="absolute flex flex-col items-center justify-center w-64"
