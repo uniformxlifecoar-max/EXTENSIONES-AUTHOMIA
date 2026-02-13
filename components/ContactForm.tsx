@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { 
   ArrowRight, ArrowLeft, CheckCircle2, Loader2, 
   Building2, User, Sparkles, Search, ChevronDown, Check,
@@ -56,7 +56,7 @@ const INITIAL_DATA: FormData = {
 };
 
 // --- Animations ---
-const fadeVariants = {
+const fadeVariants: Variants = {
   hidden: { opacity: 0, x: 20, filter: "blur(10px)" },
   visible: { 
     opacity: 1, 
@@ -300,11 +300,23 @@ export const ContactForm: React.FC = () => {
     };
 
     try {
-      await emailjs.send('service_7ieot2b', 'template_1g2lhne', templateParams, 'UdYJxT79gfFalNHtU');
+      // Use Vite Environment Variables
+      // NOTE: Ensure your .env file has these keys starting with VITE_
+      // Casting to any to avoid "Property 'env' does not exist on type 'ImportMeta'" without type definitions
+      const metaEnv = (import.meta as any).env;
+      const serviceId = metaEnv.VITE_EMAILJS_SERVICE_ID;
+      const templateId = metaEnv.VITE_EMAILJS_TEMPLATE_ID;
+      const publicKey = metaEnv.VITE_EMAILJS_PUBLIC_KEY;
+
+      if (!serviceId || !templateId || !publicKey) {
+        throw new Error("Faltan variables de entorno de EmailJS. Verifica tu archivo .env");
+      }
+
+      await emailjs.send(serviceId, templateId, templateParams, publicKey);
       setStep(5);
     } catch (e) {
       console.error(e);
-      alert("Hubo un error de conexión. Por favor intenta nuevamente.");
+      alert("Hubo un error de conexión o configuración. Por favor intenta nuevamente.");
     } finally {
       setIsSubmitting(false);
     }
