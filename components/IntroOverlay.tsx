@@ -26,7 +26,7 @@ interface PillarProps {
   offsetX?: number;
 }
 
-// --- Sub Components (Defined before usage for strict compliance) ---
+// --- Sub Components (Defined before usage to prevent hoisting issues) ---
 
 const FlowLine: React.FC<FlowLineProps> = ({ d, trigger, color, delay = 0, strokeWidth = 2 }) => (
   <motion.path
